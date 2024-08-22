@@ -14,3 +14,5 @@ print(f"Hola, {nombre}! Cumplirás 100 años en el año {anio_cumplira_100}.")
 
 #no tocar esto
 #y esto es un simulacroooo
+x=2
+b=3+x
