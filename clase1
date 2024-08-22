@@ -10,3 +10,7 @@ anio_cumplira_100 = anio_actual + (100 - edad)
 
 # Mostrar el resultado
 print(f"Hola, {nombre}! Cumplirás 100 años en el año {anio_cumplira_100}.")
+
+
+#no tocar esto
+#y esto es un simulacroooo
