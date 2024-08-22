@@ -1,0 +1,12 @@
+# Solicitar el nombre del usuario
+nombre = input("¿Cuál es tu nombre? ")
+
+# Solicitar la edad del usuario
+edad = int(input("¿Cuántos años tienes? "))
+
+# Calcular el año en que el usuario cumplirá 100 años
+anio_actual = 2024
+anio_cumplira_100 = anio_actual + (100 - edad)
+
+# Mostrar el resultado
+print(f"Hola, {nombre}! Cumplirás 100 años en el año {anio_cumplira_100}.")
