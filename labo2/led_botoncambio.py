@@ -47,25 +47,70 @@ def turn_on_led(led_index, duration):
 # Bucle principal
 try:
     while True:
-        # Leer estado del botón de selección
-        if button_select.get_value() == 1:
-            change_led()
-            # Espera activa hasta que el botón se libere para evitar rebotes
-            while button_select.get_value() == 1:
-                time.sleep(0.1)
+        # Leer el estado del botón
+        button_state = button.get_value()
+        button_state2 = button2.get_value()
 
-        # Leer estado del botón de tiempo
-        if button_time.get_value() == 1:
-            increase_time()
-            # Espera activa hasta que el botón se libere para evitar rebotes
-            while button_time.get_value() == 1:
-                time.sleep(0.1)
+        if button_state == 1:
+            counter += 1
+            print(f"Contador: {counter}")
 
-        # Encender el LED seleccionado por el tiempo indicado
-        turn_on_led(current_led, on_time)
+            # Espera activa hasta que el botón se libere
+            while button.get_value() == 1:
+                pass
+            # Esperar un pequeño tiempo para evitar rebotes del botón
+            time.sleep(0.2)
+                
+        if button_state2 == 1:
+            counter -= 1
+            print(f"Contador: {counter}")
 
-        time.sleep(0.1)  # Pausa para evitar sobrecargar la CPU
-
+            # Espera activa hasta que el botón se libere
+            while button.get_value() == 1:
+                pass
+            # Esperar un pequeño tiempo para evitar rebotes del botón
+            time.sleep(0.2)
+        
+        # Controlar los LEDs basado en el contador
+        
+        if counter == 0:
+            handle_counter_0()
+        elif counter == 1:
+            handle_counter_1()
+        elif counter == 2:
+            handle_counter_2()
+        elif counter == 3:
+            handle_counter_3()
+        elif counter == 4:
+            handle_counter_4()
+        elif counter == 5:
+            handle_counter_5()
+        elif counter == 6:
+            handle_counter_6()
+        elif counter == 7:
+            handle_counter_7()
+        elif counter == 8:
+            handle_counter_8()
+        elif counter == 9:
+            handle_counter_9()
+        elif counter == 10:
+            handle_counter_10()
+        elif counter == 11:
+            handle_counter_11()
+        elif counter == 12:
+            handle_counter_12()
+        elif counter == 13:
+            handle_counter_13()
+        elif counter == 14:
+            handle_counter_14()
+        elif counter == 15:
+            handle_counter_15()
+        elif counter == 16:
+            counter=0
+        elif counter == -1:
+            counter=15
+        
+        
 except KeyboardInterrupt:
     print("Programa interrumpido")
 finally:
