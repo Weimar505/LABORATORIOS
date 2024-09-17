@@ -13,6 +13,7 @@ LED_PIN = 16
 chip = gpiod.Chip('gpiochip0')  # Asegúrate de usar el gpiochip correcto
 led = chip.get_line(LED_PIN)
 led.request(consumer="LED", type=gpiod.LINE_REQ_DIR_OUT)
+
 pwm1 = PWMLED(18)  # Usa el pin GPIO 18 para PWM
 pwm2 = PWMLED(12)  # Usa el pin GPIO 12 para PWM
 
@@ -25,8 +26,8 @@ try:
 
             # Leer mensajes desde el puerto UART en tiempo real
             while user.in_waiting > 0:
-                value = user.read(user.in_waiting).decode('utf-8')
-                print( value)
+                value = user.read(user.in_waiting).decode('utf-8').strip()  # Strip para eliminar espacios adicionales
+                print(value)
                 
                 # Procesar el mensaje recibido
                 if value == "motor 1":
@@ -41,10 +42,16 @@ try:
                     led.set_value(0)
                     pwm1.value = 0
                     pwm2.value = 0
+
+            # Pausa para evitar el uso excesivo de CPU
+            sleep(0.1)
         except Exception as e:
             print("Error:", e)
 except KeyboardInterrupt:
     print("Código finalizado")
+    led.set_value(0)  # Asegurarse de que el LED esté apagado
+    pwm1.off()  # Asegurarse de que PWMLED esté apagado
+    pwm2.off()  # Asegurarse de que PWMLED esté apagado
     led.release()  # Liberar el pin
-    print("GPIOs liberados")
     user.close()  # Cerrar el puerto serie
+    print("GPIOs liberados")
