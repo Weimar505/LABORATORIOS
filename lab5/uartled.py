@@ -32,12 +32,12 @@ try:
                 # Procesar el mensaje recibido
                 if value == "motor 1":
                     led.set_value(1)
-                    pwm1.value = 0.25
+                    pwm1.value = 0.5
                     pwm2.value = 1
                 elif value == "motor 2":
                     led.set_value(0)
-                    pwm1.value = 1
-                    pwm2.value = 0.25
+                    pwm1.value = 0.5
+                    pwm2.value = 0
                 elif value == "apagado":
                     led.set_value(0)
                     pwm1.value = 0
