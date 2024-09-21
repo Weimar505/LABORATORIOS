@@ -48,7 +48,7 @@ void InitADC(void) {
     // Configurar el pin PE3 como entrada analógica para el ADC
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3); // Configurar el pin como entrada de ADC
 
-    // Esperar a que el módulo ADC esté listoo
+    // Esperar a que el módulo ADC esté listo
     while (!SysCtlPeripheralReady(SYSCTL_PERIPH_ADC0)) {}
 
     // Configurar el secuenciador 3 para el ADC
@@ -56,6 +56,14 @@ void InitADC(void) {
     ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END); // Configurar paso 0
     ADCSequenceEnable(ADC0_BASE, 3); // Habilitar el secuenciador 3
     ADCIntClear(ADC0_BASE, 3); // Limpiar interrupciones del secuenciador 3
+}
+
+// Inicializar los LEDs
+void InitLEDs(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION); // Habilitar el reloj para el puerto GPIO F
+
+    // Configurar los pines PF1 y PF2 como salidas para los LEDs
+    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0);
 }
 
 // Leer valor del ADC
@@ -81,6 +89,7 @@ int main(void) {
     configureSysClock();  // Configura el sistema a 120 MHz
     configureUART0();     // Configura UART0
     InitADC();            // Inicializa el ADC
+    InitLEDs();           // Inicializa los LEDs
     
     // Enviar un mensaje inicial a través de UART
     UARTprintf("ADC READINGS\r\n");
@@ -90,6 +99,13 @@ int main(void) {
         // Leer el valor del ADC y enviarlo
         uint32_t adcValue = ReadADC(); // Llamar a la función para leer el ADC
         UARTprintf("ADC Value: %d\r\n", adcValue); // Enviar el valor del ADC
+
+        // Encender o apagar los LEDs según el valor del ADC
+        if (adcValue > 2048) {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, GPIO_PIN_1 | GPIO_PIN_0); // Encender ambos LEDs
+        } else {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, 0x00); // Apagar ambos LEDs
+        }
 
         // Delay para ralentizar la lectura (aproximadamente 1 segundo)
         SysCtlDelay(ui32SysClock / 12); // Ajustar el valor de delay según sea necesario
