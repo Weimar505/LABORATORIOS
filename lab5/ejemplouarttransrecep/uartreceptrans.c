@@ -30,10 +30,10 @@ void configureSysClock(void)
 // Configurar UART0 usando UARTStdio
 void configureUART0(void)
 {
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);  // Habilita el puerto para el botón
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);  // Habilita el puerto A para UART0
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);  // Habilita UART0
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);  // Habilita el puerto para el botón
 
     // Configurar los pines PA0 (RX) y PA1 (TX) para UART0
     GPIOPinConfigure(GPIO_PA0_U0RX);
@@ -41,10 +41,11 @@ void configureUART0(void)
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
     // Configurar UART0 a 115200 baudios
-    UARTStdioConfig(0, 115200, 120000000);
+    UARTStdioConfig(0, 115200, ui32SysClock);
    
     // Configurar el pin PN1 como salida para un LED
     GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1);
+    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_2);
     GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0);
 
     // Configurar el pin PJ0 como entrada para el botón con resistencia pull-up
@@ -95,10 +96,22 @@ void UART0IntHandler(void)
             dataIndex = 0;
         }
 
-        UARTprintf("Datos recibidos: %s\r\n", data);  // Enviar mensaje con los datos recibidos
+        //UARTprintf("Datos recibidos: %s\r\n", data);  // Enviar mensaje con los datos recibidos
         GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, GPIO_PIN_1); // Indicar recepción de dato
         SysCtlDelay(1000000);
         GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0x00);
+        // Procesar la frase recibida si está disponible
+
+        if (strcmp(data, "buzzer") == 0)
+        {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_2, GPIO_PIN_2); 
+            SysCtlDelay(120000000*2);
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_2, 0x00);
+        } 
+        else 
+        {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_2, 0x00);
+        }
     }
 }
 
@@ -146,15 +159,14 @@ int main(void)
             {
                 UARTprintf("apagado\n");  // Motor apagado cuando counter es 0
             }
-        }
-
-        // Procesar la frase recibida si está disponible
-        if (newDataAvailable)
-        {
+            if (newDataAvailable)
+            {
             // Mostrar los datos recibidos
-            UARTprintf("MENSAJE RECIBIDO: %s\r\n", data);
+            UARTprintf("\n",data);//"mensaje recibido %s\r\n", 
             newDataAvailable = false;  // Limpiar la bandera
             memset(data, 0, sizeof(data));  // Limpiar el buffer de datos
+            }
         }
+
     }
 }
