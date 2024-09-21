@@ -11,7 +11,7 @@
 #define duty 4095 // ciclo de trabajo maximo del pwm en este caso debe de ser el tamaño de la resolucion de bist del adc 12bits
 uint32_t ui32SysClock; // Variable para almacenar la frecuencia del reloj del sistema
 uint32_t width;        // Variable para almacenar el ancho del pulso de PWM
-uint32_t adcValue ;
+uint32_t adcValue;
 static void configureSysClock(void); // Configurar el sistema a 120 MHz
 static void configureUART0(void);    // Configurar UART0
 static void InitPWM(void);           // Inicializar PWM
@@ -27,19 +27,21 @@ int main(void) {
     config_gpio();       // inicializar GPIO
     width = 0;          //porcentaje de pwm segun la variable duty
     while (1) {
-        uint32_t adcValue = ReadADC(); // Llamar a la función para leer el ADC
+        adcValue = ReadADC(); // Llamar a la función para leer el ADC
         width=adcValue;
         UARTprintf("ADC Value: %d\r\n", adcValue); // Enviar el valor del ADC
         PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, width);
         GPIOPinWrite(GPIO_PORTN_BASE,GPIO_PIN_2, GPIO_PIN_2);
+        if(adcValue <= 10)
+        {
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 5);
+        }
         SysCtlDelay(ui32SysClock*0.2); // Ajustar el valor de delay según sea necesario
 
     }
 }
 // Leer valor del ADC
 uint32_t ReadADC(void) {
-    uint32_t adcValue; // Variable para almacenar el valor leído del ADC
-
     // Disparar el ADC
     ADCProcessorTrigger(ADC0_BASE, 3);
 
