@@ -10,16 +10,57 @@
 
 uint32_t ui32SysClock;        // Variable para almacenar la frecuencia del reloj del sistema
 
-// Configurar el reloj del sistema
-void configureSysClock(void) {
-    // Establecer la frecuencia del reloj del sistema a 120 MHz usando el PLL
-    ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ | // Oscilador externo de 25 MHz
-                                       SYSCTL_OSC_MAIN |   // Usar el oscilador principal
-                                       SYSCTL_USE_PLL |    // Usar el PLL
-                                       SYSCTL_CFG_VCO_240), // Configurar VCO a 240 MHz
-                                       120000000);         // Frecuencia de salida deseada
-}
+static void configureSysClock(void);  // Configura el sistema a 120 MHz
+static void configureUART0(void);     // Configura UART0
+static void config_adc(void);            // Inicializa el ADC
+static void config_gpios(void);           // Inicializa los LEDs
+uint32_t ReadADC(void);
+int main(void) {
+    configureSysClock();  // Configura el sistema a 120 MHz
+    configureUART0();     // Configura UART0
+    config_adc();            // Inicializa el ADC
+    config_gpios();           // Inicializa los LEDs
+    
+    // Enviar un mensaje inicial a través de UART
+    UARTprintf("ADC READINGS\r\n");
 
+    // Bucle principal
+    while(1) {
+        // Leer el valor del ADC y enviarlo
+        uint32_t adcValue = ReadADC(); // Llamar a la función para leer el ADC
+        UARTprintf("ADC Value: %d\r\n", adcValue); // Enviar el valor del ADC
+
+        // Encender o apagar los LEDs según el valor del ADC
+        if (adcValue > 2048) {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, GPIO_PIN_1 | GPIO_PIN_0); // Encender ambos LEDs
+        } else {
+            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, 0x00); // Apagar ambos LEDs
+        }
+
+        // Delay para ralentizar la lectura (aproximadamente 1 segundo)
+        SysCtlDelay(ui32SysClock / 12); // Ajustar el valor de delay según sea necesario
+    }
+}
+//-------------------Desarrollo de funciones-----------------------------------------------//
+
+// Leer valor del ADC
+uint32_t ReadADC(void) {
+    uint32_t adcValue; // Variable para almacenar el valor leído del ADC
+
+    // Disparar el ADC
+    ADCProcessorTrigger(ADC0_BASE, 3);
+
+    // Esperar a que la conversión esté completa
+    while (!ADCIntStatus(ADC0_BASE, 3, false)) {}
+
+    // Leer el valor del ADC
+    ADCSequenceDataGet(ADC0_BASE, 3, &adcValue);
+
+    // Limpiar la bandera de interrupción
+    ADCIntClear(ADC0_BASE, 3);
+
+    return adcValue; // Retornar el valor leído del ADC
+}
 // Configurar UART0
 void configureUART0(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA); // Habilitar el reloj para el puerto GPIO A
@@ -41,7 +82,7 @@ void configureUART0(void) {
 }
 
 // Inicializar ADC
-void InitADC(void) {
+void config_adc(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); // Habilitar el reloj para el puerto GPIO E (donde está PE3)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); // Habilitar el reloj para el módulo ADC0
 
@@ -59,55 +100,18 @@ void InitADC(void) {
 }
 
 // Inicializar los LEDs
-void InitLEDs(void) {
+void config_gpios(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION); // Habilitar el reloj para el puerto GPIO F
 
     // Configurar los pines PF1 y PF2 como salidas para los LEDs
     GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0);
 }
-
-// Leer valor del ADC
-uint32_t ReadADC(void) {
-    uint32_t adcValue; // Variable para almacenar el valor leído del ADC
-
-    // Disparar el ADC
-    ADCProcessorTrigger(ADC0_BASE, 3);
-
-    // Esperar a que la conversión esté completa
-    while (!ADCIntStatus(ADC0_BASE, 3, false)) {}
-
-    // Leer el valor del ADC
-    ADCSequenceDataGet(ADC0_BASE, 3, &adcValue);
-
-    // Limpiar la bandera de interrupción
-    ADCIntClear(ADC0_BASE, 3);
-
-    return adcValue; // Retornar el valor leído del ADC
-}
-
-int main(void) {
-    configureSysClock();  // Configura el sistema a 120 MHz
-    configureUART0();     // Configura UART0
-    InitADC();            // Inicializa el ADC
-    InitLEDs();           // Inicializa los LEDs
-    
-    // Enviar un mensaje inicial a través de UART
-    UARTprintf("ADC READINGS\r\n");
-
-    // Bucle principal
-    while(1) {
-        // Leer el valor del ADC y enviarlo
-        uint32_t adcValue = ReadADC(); // Llamar a la función para leer el ADC
-        UARTprintf("ADC Value: %d\r\n", adcValue); // Enviar el valor del ADC
-
-        // Encender o apagar los LEDs según el valor del ADC
-        if (adcValue > 2048) {
-            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, GPIO_PIN_1 | GPIO_PIN_0); // Encender ambos LEDs
-        } else {
-            GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0, 0x00); // Apagar ambos LEDs
-        }
-
-        // Delay para ralentizar la lectura (aproximadamente 1 segundo)
-        SysCtlDelay(ui32SysClock / 12); // Ajustar el valor de delay según sea necesario
-    }
+// Configurar el reloj del sistema
+void configureSysClock(void) {
+    // Establecer la frecuencia del reloj del sistema a 120 MHz usando el PLL
+    ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ | // Oscilador externo de 25 MHz
+                                       SYSCTL_OSC_MAIN |   // Usar el oscilador principal
+                                       SYSCTL_USE_PLL |    // Usar el PLL
+                                       SYSCTL_CFG_VCO_240), // Configurar VCO a 240 MHz
+                                       120000000);         // Frecuencia de salida deseada
 }
