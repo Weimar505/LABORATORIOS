@@ -1,6 +1,6 @@
 #******************************************************************************
 #
-# Makefile - Rules for building the templete2 example.
+# Makefile - Rules for building the uarttiva example.
 #
 # Copyright (c) 2013-2020 Texas Instruments Incorporated.  All rights reserved.
 # Software License Agreement
@@ -43,10 +43,10 @@ include ${ROOT}/makedefs
 IPATH=../../../..
 
 #
-# The default rule, which causes the templete2 example to be built.
+# The default rule, which causes the uarttiva example to be built.
 #
 all: ${COMPILER}
-all: ${COMPILER}/templete2.axf
+all: ${COMPILER}/uarttiva.axf
 
 #
 # The rule to clean out all the build products.
@@ -61,15 +61,15 @@ ${COMPILER}:
 	@mkdir -p ${COMPILER}
 
 #
-# Rules for building the templete2 example.
+# Rules for building the uarttiva example.
 #
-${COMPILER}/templete2.axf: ${COMPILER}/templete2.o
-${COMPILER}/templete2.axf: ${COMPILER}/startup_${COMPILER}.o
-${COMPILER}/templete2.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
-{COMPILER}/templete2.axf: ${ROOT}/utils/uartstdio.c  # Añadir uartstdio.c
-${COMPILER}/templete2.axf: templete2.ld
-SCATTERgcc_templete2=templete2.ld
-ENTRY_templete2=ResetISR
+${COMPILER}/uarttiva.axf: ${COMPILER}/uarttiva.o
+${COMPILER}/uarttiva.axf: ${COMPILER}/startup_${COMPILER}.o
+${COMPILER}/uarttiva.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
+{COMPILER}/uarttiva.axf: ${ROOT}/utils/uartstdio.c  # Añadir uartstdio.c
+${COMPILER}/uarttiva.axf: uarttiva.ld
+SCATTERgcc_uarttiva=uarttiva.ld
+ENTRY_uarttiva=ResetISR
 CFLAGSgcc=-DTARGET_IS_TM4C129_RA1
 
 #
