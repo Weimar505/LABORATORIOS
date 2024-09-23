@@ -78,15 +78,12 @@ void Timer0IntHandler(void) {
     switch (counter) {
             case 1:
                 UARTprintf("motor1\r\n");
-                SysCtlDelay(ui32SysClock/12);
                 break;
             case 2:
                 UARTprintf("motor2\r\n");
-                SysCtlDelay(ui32SysClock/12);
                 break;
             case 0:
                  UARTprintf("apagado\r\n");
-                 SysCtlDelay(ui32SysClock/12);
                 break;
             default:
                 break;
