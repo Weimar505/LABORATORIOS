@@ -19,7 +19,7 @@ pwm1 = PWMLED(18)  # LED controlado por PWM en el pin GPIO 18 (motor 1)
 pwm2 = PWMLED(12)  # LED controlado por PWM en el pin GPIO 12 (motor 2)
 
 # Función para procesar y actualizar los PWM en función del valor ADC recibido
-def procesar_valor_adc(valor):
+def opcion_boton(valor):
     try:
         if valor == "motor1":
             pwm1.value = 0.5  # Motor 1 al 50%
@@ -44,16 +44,15 @@ def recibir_datos():
             valor = tiva.readline().decode("utf-8").rstrip()
             if valor:
                 print(f"Recibido: {valor}")
-                procesar_valor_adc(valor)  # Procesar el valor recibido para ajustar los PWM
+                opcion_boton(valor)  # Procesar el valor recibido para ajustar los PWM
         sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
 
 # Función para enviar datos al puerto serial
 def enviar_datos():
     while True:
-        enviar = input("")
-        # Envía el dato por UART
-        tiva.write(enviar.encode('utf-8'))
-        print(f"Enviado: {enviar}\n")
+        enviar = input("")  # Captura el texto de entrada del usuario
+        tiva.write(enviar.encode('utf-8'))  # Convierte la cadena a bytes con UTF-8
+        print(f"Enviado: {enviar}\n")  # Imprime la cadena que fue enviada
 
 # Función para verificar el estado del botón y enviar la palabra "buzzer" cuando se presiona
 def verificar_boton():
@@ -67,6 +66,8 @@ def verificar_boton():
             print("Enviado: buzzer")
             boton_presionado = True  # Marca que el botón ha sido presionado
         elif button_state == 0 and boton_presionado:  # Si el botón se libera
+            tiva.write(b"apagado\n")  # Envía "apagado" por UART
+            print("Enviado: apagado")
             boton_presionado = False  # Marca que el botón ha sido liberado
 
         sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
@@ -86,6 +87,4 @@ recepcion.join()
 envio.join()
 envio_boton.join()
 
-# Cierra el puerto serial al salir del bucle
-tiva.close()
-chip.close()  # Libera el recurso del chip GPIO
+# Cierra el puerto serial al
