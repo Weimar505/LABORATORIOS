@@ -73,8 +73,8 @@ void Timer0IntHandler(void) {
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
     //Alternar el estado del LED en el pin PF1
-    estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
+    //estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
+    //GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
     switch (counter) {
             case 1:
                 UARTprintf("motor1\r\n");
