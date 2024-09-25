@@ -22,11 +22,11 @@ chip = gpiod.Chip('gpiochip0')
 der1 = chip.get_line(motor1der)
 der2 = chip.get_line(motor2der)
 izq1 = chip.get_line(motor1izq)
-izq2 = chip.get_line(motor2izq)
+#izq2 = chip.get_line(motor2izq)
 der1.request(consumer="derecha M1", type=gpiod.LINE_REQ_DIR_OUT)
 der2.request(consumer="derecha M2", type=gpiod.LINE_REQ_DIR_OUT)
 izq1.request(consumer="izquierda M1", type=gpiod.LINE_REQ_DIR_OUT)
-izq2.request(consumer="izquierda M2", type=gpiod.LINE_REQ_DIR_OUT)
+#izq2.request(consumer="izquierda M2", type=gpiod.LINE_REQ_DIR_OUT)
 # Configuración de PWM en los pines GPIO 18 y GPIO 12
 
 # Función para procesar y actualizar los PWM en función del valor ADC recibido
@@ -65,34 +65,12 @@ def recibir_datos():
                 opcion_boton(valor)  # Procesar el valor recibido para ajustar los PWM
         sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
 
-# Función para verificar el estado del botón y enviar la palabra "buzzer" cuando se presiona
-def verificar_boton():
-    boton_presionado = False  # Variable para evitar envíos múltiples por una misma pulsación
-
-    while True:
-        button_state = button.get_value()  # Lee el estado del botón (0 = no presionado, 1 = presionado)
-
-        if button_state == 1 and not boton_presionado:  # Si el botón se presiona
-            tiva.write(b"buzzer\n")  # Envía "buzzer" por UART
-            print("Enviado: buzzer")
-            boton_presionado = True  # Marca que el botón ha sido presionado
-        elif button_state == 0 and boton_presionado:  # Si el botón se libera
-            tiva.write(b"apagado\n")  # Envía "apagado" por UART
-            print("Enviado: apagado")
-            boton_presionado = False  # Marca que el botón ha sido liberado
-
-        sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
-
 # Crear hilos para la recepción y el envío de datos
 recepcion = threading.Thread(target=recibir_datos)
-envio_boton = threading.Thread(target=verificar_boton)
-
 # Iniciar los hilos
 recepcion.start()
-envio_boton.start()
 
 # Esperar a que los hilos terminen (esto nunca sucederá a menos que el programa se cierre)
 recepcion.join()
-envio_boton.join()
 
 # Cierra el puerto serial al
