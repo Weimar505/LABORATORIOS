@@ -19,6 +19,29 @@
 #define ECHO_PIN GPIO_PIN_5
 #define TRIG_PORT GPIO_PORTA_BASE
 #define ECHO_PORT GPIO_PORTA_BASE
+// Definir pines para los motores
+#define MOTOR1DER GPIO_PIN_0
+#define MOTOR1IZQ GPIO_PIN_1
+#define MOTOR2DER GPIO_PIN_2
+#define MOTOR2IZQ GPIO_PIN_3
+#define PUERTOMOTRORES GPIO_PORTE_BASE
+// Definir pines para los leds externos
+#define LED1 GPIO_PIN_0
+#define LED2 GPIO_PIN_1
+#define LED3 GPIO_PIN_2
+#define LED4 GPIO_PIN_3
+#define PUERTOLEDS GPIO_PORTK_BASE
+// Definir pines para los leds internos
+#define LED1I GPIO_PIN_1
+#define LED2I GPIO_PIN_0
+#define LED3I GPIO_PIN_4
+#define LED4I GPIO_PIN_0
+#define PUERTOLEDSIN1 GPIO_PORTN_BASE
+#define PUERTOLEDSIN2 GPIO_PORTF_BASE
+// Denfinir pin del buzzer
+#define BUZZER GPIO_PIN_4
+#define PUERTOBUZZER GPIO_PORTB_BASE
+
 uint32_t distance;
 uint32_t startTime, endTime, duration;
 
@@ -26,7 +49,7 @@ uint32_t ui32SysClock;           // Variable para almacenar la frecuencia del re
 char uartBuffer[MAX_BUFFER_SIZE]; // Buffer para almacenar la frase recibida
 volatile uint8_t bufferIndex = 0; // Índice del buffer
 
-#define duty 4095 // ciclo de trabajo maximo del pwm en este caso debe de ser el tamaño de la resolucion de bist del adc 12bits
+#define duty 255 // ciclo de trabajo maximo del pwm en este caso debe de ser el tamaño de la resolucion de bist del adc 12bits
 uint32_t ui32SysClock;  // Variable para almacenar la frecuencia del reloj del sistema
 uint8_t estado;         //variable para cambiar el estado del led en la interrupcion
 uint32_t width;        // Variable para almacenar el ancho del pulso de PWM
@@ -41,6 +64,7 @@ uint32_t ReadADC(void);               //lectura del adc
 static void config_timer1(void);
 static void config_ultrasonico(void);
 void medir_distancia(void);
+
 
 
 int main(void) {
@@ -69,6 +93,7 @@ int main(void) {
     }
 }
 
+
 // Manejador de la interrupción de UART0 (cuando se recibe un dato)
 void UART0IntHandler(void) {
     uint32_t ui32Status;
@@ -89,21 +114,42 @@ void UART0IntHandler(void) {
             UARTprintf("Datos recibidos: %s\r\n", uartBuffer);  // Imprimir la frase recibida
 
             // Comparar los datos recibidos con palabras
-            if (strcmp(uartBuffer, "adelante") == 0) {
+            if (strcmp(uartBuffer, "adelante" ) == 0 && distance>=5) {
                 UARTprintf("Activando LED adelante\r\n");
-                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, GPIO_PIN_1);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);  // LED adelante
+                PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
             } 
-            else if (strcmp(uartBuffer, "atras") == 0) {
+            else if (strcmp(uartBuffer, "atras") == 0 && distance>=5) {
                 UARTprintf("Activando LED atras\r\n");
-                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0);  // LED atrás
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
+                PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
             } 
-            else if (strcmp(uartBuffer, "derecha") == 0) {
+            else if (strcmp(uartBuffer, "derecha") == 0&& distance>=5)  {
                 UARTprintf("Activando LED derecha\r\n");
-                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_PIN_4);  // LED derecha
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelant
             } 
-            else if (strcmp(uartBuffer, "izquierda") == 0) {
+            else if (strcmp(uartBuffer, "izquierda") == 0 && distance>=5) {
                 UARTprintf("Activando LED izquierda\r\n");
-                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, GPIO_PIN_0);  // LED izquierda
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00); 
+            } 
+            else if (strcmp(uartBuffer, "apagado") == 0) {
+                UARTprintf("Activando LED izquierda\r\n");
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00); 
             } 
             else {
                 UARTprintf("Comando no reconocido\r\n");
@@ -127,14 +173,17 @@ void UART0IntHandler(void) {
 }
 
 
+
+
+
 // Función de manejo de la interrupción del temporizador
 void Timer0IntHandler(void) {
     // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
     // Alternar el estado del LED en el pin PF1
-    estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
+    //estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
+    //GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
 }
 void Timer1IntHandler(void) {
     // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
@@ -157,7 +206,7 @@ uint32_t ReadADC(void) {
     return adcValue; // Retornar el valor leído del ADC
 }
 //Funcion para medir distancia
-void medir_distancia(void){
+void medir_distancia(void){ 
     // Enviar pulso de 10 us en el pin Trig
     GPIOPinWrite(TRIG_PORT, TRIG_PIN, TRIG_PIN);
     SysCtlDelay(400);  // Ajustar el valor para 10 us aproximadamente
@@ -186,10 +235,60 @@ void medir_distancia(void){
     // Imprimir la distancia
     UARTprintf("Distancia: %d cm\r\n", (int)distance);
 
+    // Encender o apagar LEDs según la distancia
+    if (distance > 20) {
+        GPIOPinWrite(PUERTOLEDSIN1, LED1I, LED1I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN1, LED2I, 0x00);  // LED adelante
+        SysCtlDelay(ui32SysClock*0.1);
+        GPIOPinWrite(PUERTOLEDSIN1, LED2I, LED2I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN1, LED1I, 0x00);  // LED adelante
+        SysCtlDelay(ui32SysClock*0.1);
+        GPIOPinWrite(PUERTOLEDSIN2, LED3I, 0X00);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN2, LED4I, 0X00);  // LED adelante
+        
+        //GPIOPinWrite(PUERTOLEDS, LED1, LED1);  // LED adelante
+        //SysCtlDelay(ui32SysClock/12);
+        //GPIOPinWrite(PUERTOLEDS, LED2, LED2);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED3, 0X00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED4, 0X00);  // LED adelante
+    } 
+    else if (distance > 15 && distance <= 20) {
+        GPIOPinWrite(PUERTOLEDSIN1, LED1I, LED1I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN1, LED2I, 0X00);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN2, LED3I, 0X00);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN2, LED4I, 0X00);  // LED adelante
+        
+        //GPIOPinWrite(PUERTOLEDS, LED1, LED1);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED2, 0X00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED3, 0X00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED4, 0X00);  // LED adelante
+    } 
+    else if (distance < 15) {
+        GPIOPinWrite(PUERTOLEDSIN1, LED1I, LED1I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN1, LED2I, LED2I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN2, LED3I, LED3I);  // LED adelante
+        GPIOPinWrite(PUERTOLEDSIN2, LED4I, LED4I);  // LED adelante
+        
+        //GPIOPinWrite(PUERTOLEDS, LED1, LED1);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED2, LED2);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED3, LED3);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED4, LED4);  // LED adelante
+    }
+    //else {
+       // GPIOPinWrite(PUERTOLEDSIN1, LED1I, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDSIN1, LED2I, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDSIN2, LED3I, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDSIN2, LED4I, 0x00);  // LED adelante
+        
+        //GPIOPinWrite(PUERTOLEDS, LED1, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED2, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED3, 0x00);  // LED adelante
+        //GPIOPinWrite(PUERTOLEDS, LED4, 0x00);  // LED adelante
+   // }
     // Pequeña espera antes de la siguiente lectura
     SysCtlDelay(120000000 * 0.1);
-
 }
+
 //configuracion sensor ultrasonico
 static void config_ultrasonico(void){
             // Habilitar el puerto A para los pines del sensor
@@ -323,11 +422,23 @@ static void config_gpio(void){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
-    //
-    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1);
-    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0);
-    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_4);
-    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_0);
+    //LEDS EXTERNOS
+    GPIOPinTypeGPIOOutput(PUERTOLEDS, LED1);
+    GPIOPinTypeGPIOOutput(PUERTOLEDS, LED2);
+    GPIOPinTypeGPIOOutput(PUERTOLEDS, LED3);
+    GPIOPinTypeGPIOOutput(PUERTOLEDS, LED4);
+    //LEDS INTERNOS
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN1, LED1I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN1, LED2I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN2, LED3I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN2, LED4I);
+    //MOTORES
+    GPIOPinTypeGPIOOutput(PUERTOMOTRORES, MOTOR1DER);
+    GPIOPinTypeGPIOOutput(PUERTOMOTRORES, MOTOR1IZQ);
+    GPIOPinTypeGPIOOutput(PUERTOMOTRORES, MOTOR2DER);
+    GPIOPinTypeGPIOOutput(PUERTOMOTRORES, MOTOR2IZQ);
+    //BUZZER
+    GPIOPinTypeGPIOOutput(PUERTOBUZZER, BUZZER);
 }
 //
 static void configureSysClock(void) {
