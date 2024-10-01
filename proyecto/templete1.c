@@ -64,8 +64,7 @@ uint32_t ReadADC(void);               //lectura del adc
 static void config_timer1(void);
 static void config_ultrasonico(void);
 void medir_distancia(void);
-
-
+void control(void);
 
 int main(void) {
     configureSysClock();  // Configurar el sistema a 120 MHz
@@ -79,7 +78,6 @@ int main(void) {
 
     // Bucle principal (no se necesita hacer nada aquí ya que la interrupción maneja el LED)
     while (1) {
-        medir_distancia();
         //adcValue = ReadADC(); // Llamar a la función para leer el ADC
         //width=adcValue;
         //UARTprintf("ADC Value: %d\r\n", adcValue); // Enviar el valor del ADC
@@ -90,10 +88,66 @@ int main(void) {
        //    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 1);
         //}
         //SysCtlDelay(ui32SysClock/12); // Ajustar el valor de delay según sea necesario
+        medir_distancia();
     }
 }
 
+void control(void){
+    // Verificar la distancia inmediatamente
+            if (distance < 5) {
+                // Detener los motores si la distancia es menor a 5
+                UARTprintf("Distancia menor a 5, deteniendo los motores\r\n");
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 0);  // Apagar PWM
+            } else {
+                // Comparar los datos recibidos con palabras y realizar acciones
+                if (strcmp(uartBuffer, "adelante" ) == 0) {
+                    UARTprintf("Activando motores adelante\r\n");
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
+                } 
+                else if (strcmp(uartBuffer, "atras") == 0) {
+                    UARTprintf("Activando motores atrás\r\n");
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
+                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
+                } 
+                else if (strcmp(uartBuffer, "derecha") == 0) {
+                    UARTprintf("Activando motores derecha\r\n");
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
+                } 
+                else if (strcmp(uartBuffer, "izquierda") == 0) {
+                    UARTprintf("Activando motores izquierda\r\n");
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                } 
+                else if (strcmp(uartBuffer, "apagado") == 0) {
+                    UARTprintf("Apagando motores\r\n");
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 0);
+                } 
+                else {
+                    UARTprintf("Comando no reconocido\r\n");
+                }
+            }
 
+}
 // Manejador de la interrupción de UART0 (cuando se recibe un dato)
 void UART0IntHandler(void) {
     uint32_t ui32Status;
@@ -112,49 +166,6 @@ void UART0IntHandler(void) {
         if (receivedChar == '\r' || receivedChar == '\n') {
             uartBuffer[bufferIndex] = '\0'; // Terminar la cadena con el carácter nulo
             UARTprintf("Datos recibidos: %s\r\n", uartBuffer);  // Imprimir la frase recibida
-
-            // Comparar los datos recibidos con palabras
-            if (strcmp(uartBuffer, "adelante" ) == 0 && distance>=5) {
-                UARTprintf("Activando LED adelante\r\n");
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);  // LED adelante
-                PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
-            } 
-            else if (strcmp(uartBuffer, "atras") == 0 && distance>=5) {
-                UARTprintf("Activando LED atras\r\n");
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
-                PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
-            } 
-            else if (strcmp(uartBuffer, "derecha") == 0&& distance>=5)  {
-                UARTprintf("Activando LED derecha\r\n");
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelant
-            } 
-            else if (strcmp(uartBuffer, "izquierda") == 0 && distance>=5) {
-                UARTprintf("Activando LED izquierda\r\n");
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00); 
-            } 
-            else if (strcmp(uartBuffer, "apagado") == 0) {
-                UARTprintf("Activando LED izquierda\r\n");
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);  // LED adelante
-                GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00); 
-            } 
-            else {
-                UARTprintf("Comando no reconocido\r\n");
-            }
-
             // Reiniciar el buffer para la siguiente frase
             bufferIndex = 0;
         }
@@ -176,11 +187,12 @@ void UART0IntHandler(void) {
 
 
 
+
 // Función de manejo de la interrupción del temporizador
 void Timer0IntHandler(void) {
     // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-
+    control();
     // Alternar el estado del LED en el pin PF1
     //estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
     //GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
@@ -328,7 +340,7 @@ static void config_timer(void) {
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
 
     // Establecer el valor del temporizador para que genere una interrupción cada 1 segundo
-    TimerLoadSet(TIMER0_BASE, TIMER_A, ui32SysClock - 1);  // 120 millones de ciclos = 1 segundo
+    TimerLoadSet(TIMER0_BASE, TIMER_A, (ui32SysClock - 1)*0.5);  // 120 millones de ciclos = 1 segundo
 
     // Habilitar la interrupción del temporizador en el procesador
     IntEnable(INT_TIMER0A);
