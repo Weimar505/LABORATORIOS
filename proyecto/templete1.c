@@ -56,6 +56,7 @@ uint32_t width;        // Variable para almacenar el ancho del pulso de PWM
 uint32_t adcValue;
 static void configureSysClock(void);
 static void config_timer(void);
+static void config_timer2(void);
 static void configureUART0(void);
 static void config_pwm(void);           // Inicializar PWM
 static void config_adc(void);        // Inicializa el ADC
@@ -74,6 +75,7 @@ int main(void) {
     config_adc();         // configuracion del adc el ADC
     config_gpio();        // configuracion de los GPIOs
     config_timer1();      // configuracion del timer1
+    config_timer2();
     config_ultrasonico(); // configuracion del sensor ultrasonico 
 
     // Bucle principal (no se necesita hacer nada aquí ya que la interrupción maneja el LED)
@@ -96,7 +98,6 @@ void control(void){
     // Verificar la distancia inmediatamente
             if (distance < 5) {
                 // Detener los motores si la distancia es menor a 5
-                UARTprintf("Distancia menor a 5, deteniendo los motores\r\n");
                 GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
                 GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
                 GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
@@ -105,7 +106,6 @@ void control(void){
             } else {
                 // Comparar los datos recibidos con palabras y realizar acciones
                 if (strcmp(uartBuffer, "adelante" ) == 0) {
-                    UARTprintf("Activando motores adelante\r\n");
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
@@ -113,7 +113,6 @@ void control(void){
                     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
                 } 
                 else if (strcmp(uartBuffer, "atras") == 0) {
-                    UARTprintf("Activando motores atrás\r\n");
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
@@ -121,21 +120,19 @@ void control(void){
                     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
                 } 
                 else if (strcmp(uartBuffer, "derecha") == 0) {
-                    UARTprintf("Activando motores derecha\r\n");
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
                 } 
                 else if (strcmp(uartBuffer, "izquierda") == 0) {
-                    UARTprintf("Activando motores izquierda\r\n");
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
                 } 
                 else if (strcmp(uartBuffer, "apagado") == 0) {
-                    UARTprintf("Apagando motores\r\n");
+
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
@@ -143,7 +140,6 @@ void control(void){
                     PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 0);
                 } 
                 else {
-                    UARTprintf("Comando no reconocido\r\n");
                 }
             }
 
@@ -183,23 +179,28 @@ void UART0IntHandler(void) {
     }
 }
 
-
-
-
-
-
 // Función de manejo de la interrupción del temporizador
 void Timer0IntHandler(void) {
     // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
     control();
-    // Alternar el estado del LED en el pin PF1
-    //estado = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
-    //GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, estado ^ GPIO_PIN_1);  // Alternar el LED
 }
 void Timer1IntHandler(void) {
     // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
     TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+}
+void Timer2IntHandler(void) {
+    // Limpiar la interrupción del temporizador para poder seguir generando interrupciones
+    TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
+    // Alternar el estado del LED en el pin PF1
+    if(distance < 5){
+        estado = GPIOPinRead(PUERTOBUZZER, BUZZER);
+        GPIOPinWrite(PUERTOBUZZER, BUZZER, estado ^ BUZZER);  // Alternar el LED
+    }
+    else
+    {
+        GPIOPinWrite(PUERTOBUZZER, BUZZER, 0x00);  // Alternar el LED
+    }
 }
 // Leer valor del ADC
 uint32_t ReadADC(void) {
@@ -245,7 +246,7 @@ void medir_distancia(void){
     distance = time_us / 58.0f;
 
     // Imprimir la distancia
-    UARTprintf("Distancia: %d cm\r\n", (int)distance);
+    UARTprintf("%d\r\n", (int)distance);
 
     // Encender o apagar LEDs según la distancia
     if (distance > 20) {
@@ -313,6 +314,25 @@ static void config_ultrasonico(void){
 
     // Asegurarse de que el Trig esté en LOW al inicio
     GPIOPinWrite(TRIG_PORT, TRIG_PIN, 0);
+}
+static void config_timer2(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);  // Habilitar el reloj para Timer0
+
+    // Configurar el temporizador 0 como un temporizador periódico de 32 bits
+    TimerConfigure(TIMER2_BASE, TIMER_CFG_PERIODIC);
+
+    // Establecer el valor del temporizador para que genere una interrupción cada 1 segundo
+    TimerLoadSet(TIMER2_BASE, TIMER_A, (ui32SysClock - 1)*2);  // 120 millones de ciclos = 1 segundo
+
+    // Habilitar la interrupción del temporizador en el procesador
+    IntEnable(INT_TIMER2A);
+    TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);  // Habilitar la interrupción por timeout
+
+    // Habilitar las interrupciones globales
+    IntMasterEnable();
+
+    // Iniciar el temporizador
+    TimerEnable(TIMER2_BASE, TIMER_A);
 }
 static void config_timer1(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);  // Habilitar el reloj para Timer0
