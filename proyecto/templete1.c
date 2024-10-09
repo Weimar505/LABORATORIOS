@@ -41,6 +41,7 @@
 // Denfinir pin del buzzer
 #define BUZZER GPIO_PIN_4
 #define PUERTOBUZZER GPIO_PORTB_BASE
+// Definicion del motor de la garra 
 
 uint32_t distance;
 uint32_t startTime, endTime, duration;
@@ -52,11 +53,15 @@ volatile uint8_t bufferIndex = 0; // Índice del buffer
 #define duty 255 // ciclo de trabajo maximo del pwm en este caso debe de ser el tamaño de la resolucion de bist del adc 12bits
 uint32_t ui32SysClock;  // Variable para almacenar la frecuencia del reloj del sistema
 uint8_t estado;         //variable para cambiar el estado del led en la interrupcion
+uint8_t estado1;  
+uint8_t estado2;  
 uint32_t width;        // Variable para almacenar el ancho del pulso de PWM
 uint32_t adcValue;
 static void configureSysClock(void);
 static void config_timer(void);
 static void config_timer2(void);
+static void config_timer3(void);
+static void config_timer4(void);
 static void configureUART0(void);
 static void config_pwm(void);           // Inicializar PWM
 static void config_adc(void);        // Inicializa el ADC
@@ -76,6 +81,8 @@ int main(void) {
     config_gpio();        // configuracion de los GPIOs
     config_timer1();      // configuracion del timer1
     config_timer2();
+    config_timer3();
+    config_timer4();
     config_ultrasonico(); // configuracion del sensor ultrasonico 
 
     // Bucle principal (no se necesita hacer nada aquí ya que la interrupción maneja el LED)
@@ -110,18 +117,18 @@ void control(void){
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
-                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
+                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 255);
                 } 
                 else if (strcmp(uartBuffer, "atras") == 0) {
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
-                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 40);
+                    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 255);
                 } 
                 else if (strcmp(uartBuffer, "derecha") == 0) {
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, MOTOR2IZQ);
-                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, MOTOR1IZQ);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, 0x00);
                 } 
@@ -129,7 +136,7 @@ void control(void){
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1DER, MOTOR1DER);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR2IZQ, 0x00);
                     GPIOPinWrite(PUERTOMOTRORES, MOTOR1IZQ, 0x00);
-                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, 0x00);
+                    GPIOPinWrite(PUERTOMOTRORES, MOTOR2DER, MOTOR2DER);
                 } 
                 else if (strcmp(uartBuffer, "apagado") == 0) {
 
@@ -162,22 +169,20 @@ void UART0IntHandler(void) {
         if (receivedChar == '\r' || receivedChar == '\n') {
             uartBuffer[bufferIndex] = '\0'; // Terminar la cadena con el carácter nulo
             UARTprintf("Datos recibidos: %s\r\n", uartBuffer);  // Imprimir la frase recibida
-            // Reiniciar el buffer para la siguiente frase
-            bufferIndex = 0;
+            bufferIndex = 0; // Reiniciar el buffer para la siguiente frase
         }
         else {
-            // Agregar el carácter al buffer si no se ha alcanzado el tamaño máximo
             if (bufferIndex < MAX_BUFFER_SIZE - 1) {
-                uartBuffer[bufferIndex++] = receivedChar;
+                uartBuffer[bufferIndex++] = receivedChar; // Agregar el carácter al buffer
             }
             else {
-                // Si el buffer está lleno, reiniciar (puedes manejar esto de otra manera)
                 UARTprintf("Buffer lleno, frase demasiado larga.\r\n");
-                bufferIndex = 0;
+                bufferIndex = 0; // Reiniciar el buffer
             }
         }
     }
 }
+
 
 // Función de manejo de la interrupción del temporizador
 void Timer0IntHandler(void) {
@@ -202,6 +207,34 @@ void Timer2IntHandler(void) {
         GPIOPinWrite(PUERTOBUZZER, BUZZER, 0x00);  // Alternar el LED
     }
 }
+void Timer3IntHandler(void){
+    TimerIntClear(TIMER3_BASE, TIMER_TIMA_TIMEOUT);
+    // Alternar el estado del LED en el pin PF1
+    if(distance < 5){
+        estado1 = GPIOPinRead(PUERTOLEDS, LED3);
+        estado2 = GPIOPinRead(PUERTOLEDS, LED4);
+        GPIOPinWrite(PUERTOLEDS, LED3, estado1 ^ LED3);  // Alternar el LED
+        GPIOPinWrite(PUERTOLEDS, LED4, estado2 ^ LED4);  // Alternar el LED
+        GPIOPinWrite(PUERTOLEDS, LED1, LED1);  // Alternar el LED
+    }
+    else
+    {
+        GPIOPinWrite(PUERTOLEDS, LED3, 0x00);  // Alternar el LED
+        GPIOPinWrite(PUERTOLEDS, LED4, 0x00);  // Alternar el LED
+        GPIOPinWrite(PUERTOLEDS, LED1, 0x00);
+    }
+ }
+ void Timer4IntHandler(void){
+    TimerIntClear(TIMER4_BASE, TIMER_TIMA_TIMEOUT);
+    // Alternar el estado del LED en el pin PF1
+    if(distance < 5){
+        GPIOPinWrite(PUERTOLEDS, LED1, LED1);  // Alternar el LED
+    }
+    else
+    {
+        GPIOPinWrite(PUERTOLEDS, LED1, 0x00);
+    }
+ }
 // Leer valor del ADC
 uint32_t ReadADC(void) {
     // Disparar el ADC
@@ -314,6 +347,44 @@ static void config_ultrasonico(void){
 
     // Asegurarse de que el Trig esté en LOW al inicio
     GPIOPinWrite(TRIG_PORT, TRIG_PIN, 0);
+}
+static void config_timer4(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER4);  // Habilitar el reloj para Timer0
+
+    // Configurar el temporizador 0 como un temporizador periódico de 32 bits
+    TimerConfigure(TIMER4_BASE, TIMER_CFG_PERIODIC);
+
+    // Establecer el valor del temporizador para que genere una interrupción cada 1 segundo
+    TimerLoadSet(TIMER4_BASE, TIMER_A, (ui32SysClock - 1)*2);  // 120 millones de ciclos = 1 segundo
+
+    // Habilitar la interrupción del temporizador en el procesador
+    IntEnable(INT_TIMER4A);
+    TimerIntEnable(TIMER4_BASE, TIMER_TIMA_TIMEOUT);  // Habilitar la interrupción por timeout
+
+    // Habilitar las interrupciones globales
+    IntMasterEnable();
+
+    // Iniciar el temporizador
+    TimerEnable(TIMER4_BASE, TIMER_A);
+}
+static void config_timer3(void) {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);  // Habilitar el reloj para Timer0
+
+    // Configurar el temporizador 0 como un temporizador periódico de 32 bits
+    TimerConfigure(TIMER3_BASE, TIMER_CFG_PERIODIC);
+
+    // Establecer el valor del temporizador para que genere una interrupción cada 1 segundo
+    TimerLoadSet(TIMER3_BASE, TIMER_A, (ui32SysClock - 1)*0.5);  // 120 millones de ciclos = 1 segundo
+
+    // Habilitar la interrupción del temporizador en el procesador
+    IntEnable(INT_TIMER3A);
+    TimerIntEnable(TIMER3_BASE, TIMER_TIMA_TIMEOUT);  // Habilitar la interrupción por timeout
+
+    // Habilitar las interrupciones globales
+    IntMasterEnable();
+
+    // Iniciar el temporizador
+    TimerEnable(TIMER3_BASE, TIMER_A);
 }
 static void config_timer2(void) {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);  // Habilitar el reloj para Timer0
