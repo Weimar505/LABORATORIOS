@@ -5,6 +5,7 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
+from abc import ABC, abstractmethod
 
 # Configuración del puerto serial
 tiva = serial.Serial("/dev/ttyACM0", 115200)
@@ -16,9 +17,9 @@ ruta_archivo = "/home/pi/Desktop/labo1/miniproy/raspy/registro_estados.txt"
 # Configuración del correo electrónico
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
-email_usuario = "embebidos9@gmail.com"  # Reemplaza con tu dirección de correo
-email_contrasena = "pvrw owsr nxlh jddr"  # Reemplaza con tu contraseña o token
-destinatario = "fernando.rodriguez.c@ucb.edu.bo"  # Reemplaza con el correo del destinatario
+email_usuario = "embebidosdosdos@gmail.com"
+email_contrasena = "wsib atid isrq mrei"  # Reemplaza con tu contraseña o token
+destinatario = "kakurrazo@gmail.com"  # Reemplaza con el correo del destinatario
 
 # Variable de control para enviar "girar"
 enviar_girar = True
@@ -52,14 +53,27 @@ def registrar_cambio(mensaje):
     except Exception as e:
         print(f"Error al escribir en el archivo: {e}")
 
-# Función para enviar "girar" por UART
-def enviar_girar_hilo():
-    global enviar_girar
-    while enviar_girar:
-        # Enviar "girar" por UART
-        tiva.write(b"girar\n")  # Asegúrate de enviar la línea correctamente
-        print("Enviando: girar")
-        sleep(1)  # Espera un segundo antes de volver a enviar
+# Clase abstracta para enviar comandos por UART
+class ComandoUART(ABC):
+    @abstractmethod
+    def enviar(self):
+        pass
+
+# Clase concreta que implementa el envío del comando "girar"
+class EnviarGirar(ComandoUART):
+    def _init_(self, tiva):
+        self.tiva = tiva
+        self.enviar_girar = True
+
+    def enviar(self):
+        while self.enviar_girar:
+            # Enviar "girar" por UART
+            self.tiva.write(b"girar\n")  # Asegúrate de enviar la línea correctamente
+            print("Enviando: girar")
+            sleep(1)  # Espera un segundo antes de volver a enviar
+
+# Instanciar la clase EnviarGirar
+comando_uart = EnviarGirar(tiva)
 
 # Función para recibir datos en un hilo separado
 def recibir_datos():
@@ -78,7 +92,7 @@ def recibir_datos():
                     threading.Thread(target=enviar_correo, args=("Cambio de Estado", mensaje)).start()
                     # Registrar en el archivo
                     registrar_cambio(mensaje)
-                    enviar_girar = False  # Dejar de enviar "girar"
+                    comando_uart.enviar_girar = False  # Dejar de enviar "girar"
 
                 # Si recibe datos del sensor (asumiendo que son números)
                 else:
@@ -100,7 +114,7 @@ def recibir_datos():
 hilo_recepcion = threading.Thread(target=recibir_datos)
 
 # Crear hilo para enviar "girar"
-hilo_envio_girar = threading.Thread(target=enviar_girar_hilo)
+hilo_envio_girar = threading.Thread(target=comando_uart.enviar)
 
 # Iniciar los hilos
 hilo_recepcion.start()
