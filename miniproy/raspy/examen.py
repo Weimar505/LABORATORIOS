@@ -1,51 +1,111 @@
 import serial
 import threading
-import gpiod
 from time import sleep
-from gpiozero import PWMLED
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 
 # Configuración del puerto serial
 tiva = serial.Serial("/dev/ttyACM0", 115200)
 tiva.reset_input_buffer()
 
-# Crear o sobreescribir el archivo con la ruta completa
-ruta_archivo = "/home/pi/Desktop/labo1/miniproy/raspy/lecturas_ultrasonico.txt"
+# Ruta del archivo de registro
+ruta_archivo = "/home/pi/Desktop/labo1/miniproy/raspy/registro_estados.txt"
 
-# Abrir el archivo en modo escritura ('w' para sobreescribir)
-with open(ruta_archivo, "w") as archivo:
-    archivo.write(f"Inicio de mediciones: {datetime.now()}\n")
+# Configuración del correo electrónico
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+email_usuario = "embebidos9@gmail.com"  # Reemplaza con tu dirección de correo
+email_contrasena = "pvrw owsr nxlh jddr"  # Reemplaza con tu contraseña o token
+destinatario = "fernando.rodriguez.c@ucb.edu.bo"  # Reemplaza con el correo del destinatario
 
-# Función para procesar y actualizar el archivo cuando el valor "adelante" es recibido
-def opcion_boton(valor):
+# Variable de control para enviar "girar"
+enviar_girar = True
+
+# Función para enviar correos
+def enviar_correo(asunto, mensaje):
+    msg = MIMEMultipart()
+    msg['From'] = email_usuario
+    msg['To'] = destinatario
+    msg['Subject'] = asunto
+
+    msg.attach(MIMEText(mensaje, 'plain'))
+
     try:
-        if valor == "adelante":
-            print("Vehículo pausado")
-            with open(ruta_archivo, "a") as archivo:
-                archivo.write(f"Vehículo pausado: {datetime.now()}\n")
-            sleep(2)
-            print("Vehículo en funcionamiento")
-            with open(ruta_archivo, "a") as archivo:
-                archivo.write(f"Vehículo en funcionamiento: {datetime.now()}\n")
-        else:
-            print(f"Recibido: {valor}")
-    except ValueError:
-        print(f"Valor no válido: {valor}")
+        servidor = smtplib.SMTP(smtp_server, smtp_port)
+        servidor.starttls()  # Iniciar conexión segura
+        servidor.login(email_usuario, email_contrasena)
+        servidor.send_message(msg)
+        print("Correo enviado con éxito")
+        servidor.quit()
+    except Exception as e:
+        print(f"Error al enviar el correo: {e}")
+
+# Función para escribir en el archivo
+def registrar_cambio(mensaje):
+    fecha_hora_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        with open(ruta_archivo, 'a') as archivo:
+            archivo.write(f"{mensaje} | Fecha y hora: {fecha_hora_actual}\n")
+        print(f"Registrado: {mensaje}, Fecha y hora: {fecha_hora_actual}")
+    except Exception as e:
+        print(f"Error al escribir en el archivo: {e}")
+
+# Función para enviar "girar" por UART
+def enviar_girar_hilo():
+    global enviar_girar
+    while enviar_girar:
+        # Enviar "girar" por UART
+        tiva.write(b"girar\n")  # Asegúrate de enviar la línea correctamente
+        print("Enviando: girar")
+        sleep(1)  # Espera un segundo antes de volver a enviar
 
 # Función para recibir datos en un hilo separado
 def recibir_datos():
+    global enviar_girar
     while True:
         if tiva.in_waiting > 0:  # Verifica si hay datos en el buffer
             # Lee la línea, decodifica y elimina caracteres de salto de línea
             valor = tiva.readline().decode("utf-8").rstrip()
             if valor:
-                opcion_boton(valor)  # Procesar el valor recibido
+                print(f"Valor recibido: {valor}")
+
+                # Si recibe "adelante", enviar correo de "detenido" y dejar de enviar "girar"
+                if valor.lower() == "adelante":
+                    mensaje = "Estado cambiado a detenido."
+                    # Enviar correo
+                    threading.Thread(target=enviar_correo, args=("Cambio de Estado", mensaje)).start()
+                    # Registrar en el archivo
+                    registrar_cambio(mensaje)
+                    enviar_girar = False  # Dejar de enviar "girar"
+
+                # Si recibe datos del sensor (asumiendo que son números)
+                else:
+                    try:
+                        distancia = float(valor)  # Intenta convertir el valor a float
+                        estado_actual = "funcionando"
+                        mensaje = f"Carro funcionando. Distancia: {distancia} cm."
+                        # Enviar correo
+                        threading.Thread(target=enviar_correo, args=("Estado Funcionando", mensaje)).start()
+                        # Registrar en el archivo
+                        registrar_cambio(mensaje)
+
+                    except ValueError:
+                        print("Error: Valor recibido no es un número válido")
+
         sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
 
-# Crear hilos para la recepción de datos
-recepcion = threading.Thread(target=recibir_datos)
+# Crear hilo para la recepción de datos
+hilo_recepcion = threading.Thread(target=recibir_datos)
+
+# Crear hilo para enviar "girar"
+hilo_envio_girar = threading.Thread(target=enviar_girar_hilo)
+
 # Iniciar los hilos
-recepcion.start()
+hilo_recepcion.start()
+hilo_envio_girar.start()
 
 # Esperar a que los hilos terminen (esto nunca sucederá a menos que el programa se cierre)
-recepcion.join()
+hilo_recepcion.join()
+hilo_envio_girar.join()
