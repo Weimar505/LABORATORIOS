@@ -177,5 +177,5 @@ static void configureSysClock(void) {
     ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
                                        SYSCTL_OSC_MAIN |
                                        SYSCTL_USE_PLL |
-                                       SYSCTL_CFG_VCO_240), 120000000);
+                                       SYSCTL_CFG_VCO_160), 120000000);
 }
