@@ -242,12 +242,16 @@ void Timer4IntHandler(void){
     if(distance<=8){
         PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, contador);
         contador=contador+5;
-        if(contador == 255){
-            contador=0;
+        if(contador >= 255){
+            contador=255;
         }
     }
     else{
-            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, 2);
+        if(contador != 255){
+            contador =1;
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, contador);
+
+        }
     }
  }
 void Timer6IntHandler(void){
