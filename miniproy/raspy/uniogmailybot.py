@@ -2,160 +2,126 @@ import serial
 import threading
 import gpiod
 from time import sleep
+from gpiozero import PWMLED
 from datetime import datetime
+import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import smtplib
+from abc import ABC, abstractmethod
 
 # Configuración del puerto serial
 tiva = serial.Serial("/dev/ttyACM0", 115200)
 tiva.reset_input_buffer()
 
-# Inicializar el chip GPIO
-chip = gpiod.Chip('gpiochip0')
+# Crear o sobreescribir el archivo con la ruta completa
+ruta_archivo = "/home/pi/Desktop/labo1/miniproy/raspy/lecturas_ultrasonico.txt"
 
-# Pines GPIO para los botones
-boton_atras_pin = 21
-boton_adelante_pin = 19
-boton_izquierda_pin = 13
-boton_derecha_pin = 26
-
-# Configuración de los botones usando gpiod
-boton_adelante = chip.get_line(boton_adelante_pin)
-boton_atras = chip.get_line(boton_atras_pin)
-boton_izquierda = chip.get_line(boton_izquierda_pin)
-boton_derecha = chip.get_line(boton_derecha_pin)
-
-boton_adelante.request(consumer="adelante", type=gpiod.LINE_REQ_DIR_IN, default_vals=[0])
-boton_atras.request(consumer="atras", type=gpiod.LINE_REQ_DIR_IN, default_vals=[0])
-boton_izquierda.request(consumer="izquierda", type=gpiod.LINE_REQ_DIR_IN, default_vals=[0])
-boton_derecha.request(consumer="derecha", type=gpiod.LINE_REQ_DIR_IN, default_vals=[0])
-
-# Configuración del correo electrónico
+# Configuración del correo
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
 email_usuario = "embebidos9@gmail.com"
-email_contrasena = "mzds cuaz kewt hkom"  # Reemplaza con tu contraseña o token
+email_contrasena = "mzds cuaz kewt hkom"
 destinatario = "rufo.huallpara@ucb.edu.bo"
 
-# Función para enviar correos
+# Clase abstracta para la comunicación UART
+class ComunicacionUART(ABC):
+    @abstractmethod
+    def enviar_mensaje(self, mensaje):
+        pass
+
+# Clase concreta que implementa la comunicación UART
+class ComunicacionUARTConcreta(ComunicacionUART):
+    def __init__(self, uart):
+        self.uart = uart
+        self.enviando_girar = True  # Bandera para controlar el envío continuo
+
+    def enviar_mensaje(self, mensaje):
+        self.uart.write(f"{mensaje}\n".encode("utf-8"))
+        print(f"Enviado a la Tiva: {mensaje}")
+
+    # Método para iniciar o detener el envío continuo de "girar"
+    def enviar_girar_continuo(self):
+        while self.enviando_girar:
+            self.enviar_mensaje("girar")
+            sleep(1)  # Envía "girar" cada segundo
+
+    # Método para detener el envío de "girar"
+    def detener_envio_girar(self):
+        self.enviando_girar = False
+        print("Envio de 'girar' detenido.")
+
+    # Método para reanudar el envío de "girar"
+    def reanudar_envio_girar(self):
+        if not self.enviando_girar:
+            self.enviando_girar = True
+            threading.Thread(target=self.enviar_girar_continuo).start()
+
+# Instancia de la clase concreta para enviar datos por UART
+comunicacion_uart = ComunicacionUARTConcreta(tiva)
+
+# Función para enviar correo electrónico
 def enviar_correo(asunto, mensaje):
-    msg = MIMEMultipart()
-    msg['From'] = email_usuario
-    msg['To'] = destinatario
-    msg['Subject'] = asunto
-
-    msg.attach(MIMEText(mensaje, 'plain'))
-
     try:
-        servidor = smtplib.SMTP(smtp_server, smtp_port)
-        servidor.starttls()  # Iniciar conexión segura
-        servidor.login(email_usuario, email_contrasena)
-        servidor.send_message(msg)
-        print("Correo enviado con éxito")
-        servidor.quit()
+        # Crear el objeto de mensaje
+        msg = MIMEMultipart()
+        msg['From'] = email_usuario
+        msg['To'] = destinatario
+        msg['Subject'] = asunto
+        msg.attach(MIMEText(mensaje, 'plain'))
+
+        # Conexión al servidor SMTP y envío del correo
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()  # Asegurar la conexión
+        server.login(email_usuario, email_contrasena)  # Iniciar sesión
+        server.sendmail(email_usuario, destinatario, msg.as_string())  # Enviar correo
+        server.quit()
+        print("Correo enviado correctamente.")
     except Exception as e:
-        print(f"Error al enviar el correo: {e}")
-
-# Función para verificar el estado de los botones y enviar el comando correspondiente
-def verificar_botones():
-    estado_botones = {"adelante": False, "atras": False, "izquierda": False, "derecha": False}
-
-    while True:
-        # Verificar estado de cada botón
-        if boton_adelante.get_value() == 1 and not estado_botones["adelante"]:
-            tiva.write(b"adelante\n")
-            print("Enviado: adelante")
-            estado_botones["adelante"] = True
-        elif boton_adelante.get_value() == 0 and estado_botones["adelante"]:
-            tiva.write(b"apagado\n")  # Envía "apagado" por UART
-            print("Enviado: apagado")
-            estado_botones["adelante"] = False
-
-        if boton_atras.get_value() == 1 and not estado_botones["atras"]:
-            tiva.write(b"atras\n")
-            print("Enviado: atras")
-            estado_botones["atras"] = True
-        elif boton_atras.get_value() == 0 and estado_botones["atras"]:
-            tiva.write(b"apagado\n")  # Envía "apagado" por UART
-            print("Enviado: apagado")
-            estado_botones["atras"] = False
-
-        if boton_izquierda.get_value() == 1 and not estado_botones["izquierda"]:
-            tiva.write(b"izquierda\n")
-            print("Enviado: izquierda")
-            estado_botones["izquierda"] = True
-        elif boton_izquierda.get_value() == 0 and estado_botones["izquierda"]:
-            tiva.write(b"apagado\n")  # Envía "apagado" por UART
-            print("Enviado: apagado")
-            estado_botones["izquierda"] = False
-
-        if boton_derecha.get_value() == 1 and not estado_botones["derecha"]:
-            tiva.write(b"derecha\n")
-            print("Enviado: derecha")
-            estado_botones["derecha"] = True
-        elif boton_derecha.get_value() == 0 and estado_botones["derecha"]:
-            tiva.write(b"apagado\n")  # Envía "apagado" por UART
-            print("Enviado: apagado")
-            estado_botones["derecha"] = False
-
-        sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
+        print(f"Error al enviar correo: {e}")
 
 # Función para recibir datos en un hilo separado
 def recibir_datos():
-    distancia_anterior = None  # Variable para almacenar la distancia anterior
-    estado_anterior = None  # Variable para almacenar el estado anterior
-    correo_enviado_detenido = False  # Bandera para controlar envío de correo "detenido"
-    correo_enviado_funcionando = False  # Bandera para controlar envío de correo "funcionando"
-
+    medicion_inicial = False
     while True:
         if tiva.in_waiting > 0:  # Verifica si hay datos en el buffer
-            # Lee la línea, decodifica y elimina caracteres de salto de línea
             valor = tiva.readline().decode("utf-8").rstrip()
             if valor:
-                try:
-                    distancia = float(valor)  # Asume que el valor recibido es un número
-                    print(f"Distancia: {distancia} cm")
+                print(f"Recibido: {valor}")
+                
+                # Solo registrar la primera medición al inicio
+                if not medicion_inicial:
+                    fecha_hora_inicio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    with open(ruta_archivo, 'w') as archivo:
+                        archivo.write(f"Inicio de medición: {fecha_hora_inicio}, Medida inicial: {valor}\n")
+                    enviar_correo("Inicio de medición", f"Fecha: {fecha_hora_inicio}, Medida inicial: {valor}")
+                    medicion_inicial = True
 
-                    # Determina el estado actual basado en la distancia
-                    if distancia <= 5:
-                        estado_actual = "detenido"
-                    else:
-                        estado_actual = "funcionando"
+                # Cuando se recibe la palabra "adelante"
+                if valor == "adelante":
+                    fecha_hora_adelante = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    with open(ruta_archivo, 'a') as archivo:
+                        archivo.write(f"Recogiendo basura: {fecha_hora_adelante}\n")
+                    enviar_correo("Recogiendo basura", f"Vehículo pausado y recogiendo basura. Fecha: {fecha_hora_adelante}")
+                    print("Recogiendo basura")
 
-                    fecha_hora_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    # Detener el envío de "girar" al recibir "adelante"
+                    comunicacion_uart.detener_envio_girar()
 
-                    # Verifica si hay un cambio de estado
-                    if estado_actual == "detenido" and estado_anterior != "detenido":
-                        if not correo_enviado_detenido:  # Envía correo solo si no se ha enviado antes
-                            mensaje = f"Carro detenido a {distancia} cm\nFecha y hora: {fecha_hora_actual}"
-                            enviar_correo("Estado del carro", mensaje)
-                            correo_enviado_detenido = True  # Marca que se ha enviado el correo
-                        correo_enviado_funcionando = False  # Reinicia el correo de funcionando
-
-                    elif estado_actual == "funcionando" and estado_anterior != "funcionando":
-                        if not correo_enviado_funcionando:  # Envía correo solo si no se ha enviado antes
-                            mensaje = f"Carro en funcionamiento a {distancia} cm\nFecha y hora: {fecha_hora_actual}"
-                            enviar_correo("Estado del carro", mensaje)
-                            correo_enviado_funcionando = True  # Marca que se ha enviado el correo
-                        correo_enviado_detenido = False  # Reinicia el correo de detenido
-
-                    # Actualiza el estado anterior y la distancia
-                    estado_anterior = estado_actual
-                    distancia_anterior = distancia  # Actualiza la distancia anterior
-                except ValueError:
-                    print("Error: Valor recibido no es un número")
+                else:
+                    # Reanudar el envío de "girar" al recibir lecturas normales
+                    comunicacion_uart.reanudar_envio_girar()
 
         sleep(0.1)  # Pausa para evitar consumir demasiados recursos de CPU
 
-# Crear hilos para la recepción de datos y para verificar el estado de los botones
-hilo_recepcion = threading.Thread(target=recibir_datos)
-hilo_verificar_botones = threading.Thread(target=verificar_botones)
+# Crear hilos para la recepción y el envío de datos
+recepcion = threading.Thread(target=recibir_datos)
+# Hilo para enviar "girar" de manera continua
+envio_girar = threading.Thread(target=comunicacion_uart.enviar_girar_continuo)
 
 # Iniciar los hilos
-hilo_recepcion.start()
-hilo_verificar_botones.start()
+recepcion.start()
+envio_girar.start()
 
 # Esperar a que los hilos terminen (esto nunca sucederá a menos que el programa se cierre)
-hilo_recepcion.join()
-hilo_verificar_botones.join()
+recepcion.join()
+envio_girar.join()
