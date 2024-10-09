@@ -7,7 +7,7 @@ import time
 
 # Configuración del chip GPIO y del botón
 chip = gpiod.Chip('gpiochip0')  # Define el chip GPIO
-boton_pin = 21  # Usa el pin GPIO 17 para el botón
+boton_pin = 21  # Usa el pin GPIO 21 para el botón
 
 boton = chip.get_line(boton_pin)
 
@@ -15,21 +15,17 @@ boton = chip.get_line(boton_pin)
 boton.request(consumer="boton", type=gpiod.LINE_REQ_DIR_IN, default_vals=[0], flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_DOWN)
 
 # Función para enviar el correo
-def enviar_correo():
+def enviar_correo(asunto, mensaje):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
     email_usuario = "embebidos9@gmail.com"
-    email_contrasena = "mzds cuaz kewt hkom"  # O token si usas autenticación en dos pasos
-    destinatario = "rufo.huallpara@ucb.edu.bo"
+    email_contrasena = "pvrw owsr nxlh jddr"  # O token si usas autenticación en dos pasos
+    destinatario = "enrique.nina@ucb.edu.bo"
     
     msg = MIMEMultipart()
     msg['From'] = email_usuario
     msg['To'] = destinatario
-    msg['Subject'] = "Hora y fecha actuales"
-
-    # Obtener la hora y fecha actuales
-    fecha_hora_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    mensaje = f"Hola, la fecha y hora actuales son: {fecha_hora_actual}"
+    msg['Subject'] = asunto
 
     msg.attach(MIMEText(mensaje, 'plain'))
 
@@ -50,7 +46,10 @@ def boton_callback():
     estado = boton.get_value()
     if estado:  # Solo enviar el correo si el estado es HIGH
         print("Botón pulsado, enviando correo...")
-        enviar_correo()
+        enviar_correo("Botón Presionado", "El botón ha sido pulsado.")
+    else:  # Enviar un correo si el botón NO está presionado
+        print("Botón NO pulsado, enviando correo...")
+        enviar_correo("Botón No Presionado", "El botón no está presionado.")
 
 # Detectar la pulsación del botón
 try:
@@ -59,6 +58,15 @@ try:
         evento = boton.event_wait(sec=5)
         if evento:
             boton_callback()  # Llamar la función cuando se detecta la pulsación del botón
+
+        # Verificar el estado del botón cada cierto tiempo
+        estado = boton.get_value()
+        if not estado:  # Si el botón no está presionado
+            print("El botón no está presionado, enviando correo...")
+            enviar_correo("Botón No Presionado", "El botón no está presionado.")
+
+        time.sleep(1)  # Esperar un segundo antes de verificar de nuevo
+
 except KeyboardInterrupt:
     print("Saliendo del programa")
 finally:
