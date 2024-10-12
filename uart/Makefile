@@ -1,6 +1,6 @@
 #******************************************************************************
 #
-# Makefile - Rules for building the bluetooth_y_uart0 example.
+# Makefile - Rules for building the uart example.
 #
 # Copyright (c) 2013-2020 Texas Instruments Incorporated.  All rights reserved.
 # Software License Agreement
@@ -49,10 +49,10 @@ VPATH=../../../../utils
 IPATH=../../../..
 
 #
-# The default rule, which causes the bluetooth_y_uart0 example to be built.
+# The default rule, which causes the uart example to be built.
 #
 all: ${COMPILER}
-all: ${COMPILER}/bluetooth_y_uart0.axf
+all: ${COMPILER}/uart.axf
 
 #
 # The rule to clean out all the build products.
@@ -67,16 +67,16 @@ ${COMPILER}:
 	@mkdir -p ${COMPILER}
 
 #
-# Rules for building the bluetooth_y_uart0 example.
+# Rules for building the uart example.
 #
-${COMPILER}/bluetooth_y_uart0.axf: ${COMPILER}/bluetooth_y_uart0.o
-${COMPILER}/bluetooth_y_uart0.axf: ${COMPILER}/startup_${COMPILER}.o
-${COMPILER}/bluetooth_y_uart0.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
-#${COMPILER}/bluetooth_y_uart0.axf: ${ROOT}/utils/uartstdio.c  # Añadir uartstdio.c
-${COMPILER}/bluetooth_y_uart0.axf: ${COMPILER}/uartstdio.o
-${COMPILER}/bluetooth_y_uart0.axf: bluetooth_y_uart0.ld
-SCATTERgcc_bluetooth_y_uart0=bluetooth_y_uart0.ld
-ENTRY_bluetooth_y_uart0=ResetISR
+${COMPILER}/uart.axf: ${COMPILER}/uart.o
+${COMPILER}/uart.axf: ${COMPILER}/startup_${COMPILER}.o
+${COMPILER}/uart.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
+#${COMPILER}/uart.axf: ${ROOT}/utils/uartstdio.c  # Añadir uartstdio.c
+${COMPILER}/uart.axf: ${COMPILER}/uartstdio.o
+${COMPILER}/uart.axf: uart.ld
+SCATTERgcc_uart=uart.ld
+ENTRY_uart=ResetISR
 CFLAGSgcc=-DTARGET_IS_TM4C129_RA1
 
 #
