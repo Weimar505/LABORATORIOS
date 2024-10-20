@@ -1,7 +1,10 @@
+#Para que funcione dembemos ejecutarlo en el entorno virtual en el s=caso de la direccion de vision artificail 
+# y luego habilitar antes de hacerlo correr el programa el entorno virtual con : source env/bin/activate
+
 import cv2
 from abc import ABC, abstractmethod
 
-class video_Capture_abs(ABC):
+class VideoCaptureAbs(ABC):
     @abstractmethod
     def display_camera(self):
         pass
@@ -14,8 +17,9 @@ class video_Capture_abs(ABC):
     def camera_visualization(self):
         pass
 
-class video_Capture(video_Capture_abs):
-    def __init__(self, camera) -> None:  # Corregido el constructor __init__
+
+class VideoCapture(VideoCaptureAbs):
+    def __init__(self, camera) -> None:
         self.camera = camera
         self.displayed = False
 
@@ -29,13 +33,11 @@ class video_Capture(video_Capture_abs):
     def camera_visualization(self):
         while self.displayed:
             check, frame = self.camera.read()
-            cv2.imshow("Camera", frame)
-            key = cv2.waitKey(0)
-            if key == 27:  # 27 es el código ASCII para la tecla 'Esc'
+            cv2.imshow('camera', frame)
+            key = cv2.waitKey(1)
+            if key != -1:  # Cualquier tecla fue presionada
                 self.stop_display()
 
-# Corregido el nombre del condicional __name__
-if __name__ == "__main__":
-    camera = cv2.VideoCapture(0)
-    camera_object = video_Capture(camera)
-    camera_object.display_camera()
+camera = cv2.VideoCapture(0)
+camera_object = VideoCapture(camera)
+camera_object.display_camera()
