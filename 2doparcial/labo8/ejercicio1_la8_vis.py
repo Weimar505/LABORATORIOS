@@ -49,8 +49,10 @@ while True:
     cv2.imshow('Cuadrante 4 - Inferior Derecha', cuadrante_4)  # Cuadrante inferior derecha
 
     # Presionar 'q' para salir del bucle durante la reproducción
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(1)
+    if key == ord('q'):
         break
+
 
 # Esperar a que el usuario presione una tecla para cerrar las ventanas
 cv2.waitKey(0)  # Espera indefinidamente hasta que se presione una tecla
