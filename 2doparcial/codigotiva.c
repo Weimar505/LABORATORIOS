@@ -55,7 +55,7 @@ void Timer0IntHandler(void) {
     if(contador == 1){
         GPIOPinWrite(PUERTOLEDSIN1, LED1I, LED1I);  
         GPIOPinWrite(PUERTOLEDSIN1, LED2I, 0x00);
-        GPIOPinWrite(PUERTOLEDSIN2, LED3I, 0x00pe);
+        GPIOPinWrite(PUERTOLEDSIN2, LED3I, 0x00);
 
         GPIOPinWrite(PUERTOLEDS, LED1, LED1);
         GPIOPinWrite(PUERTOLEDS, LED2, 0x00);
