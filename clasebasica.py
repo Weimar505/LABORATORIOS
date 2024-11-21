@@ -1,2 +1,0 @@
-#como
-#no como
