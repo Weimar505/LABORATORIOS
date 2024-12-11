@@ -72,6 +72,13 @@ uint32_t duty;
 #define MOTOR2_DER_PIN GPIO_PIN_2
 #define MOTOR2_IZQ_PIN GPIO_PIN_3
 #define MOTORRES_PORT GPIO_PORTK_BASE
+// Definir pines para los leds internos
+#define LED1I GPIO_PIN_1
+#define LED2I GPIO_PIN_0
+#define LED3I GPIO_PIN_4
+#define LED4I GPIO_PIN_0
+#define PUERTOLEDSIN1 GPIO_PORTN_BASE
+#define PUERTOLEDSIN2 GPIO_PORTF_BASE
 //-----------------------FUNCIONES DEL SISTEMA---------------------------------//
 // Declaraciones de funciones
 static void configureSysClock(void);  
@@ -84,7 +91,8 @@ static void config_timer3(void);
 static void config_ultrasonico(void);
 static void config_pwm(void);    
 static void config_motores(void);
-static void uartprintf(const char *str);
+static void config_gpio(void);
+
 //---------------------FUNCIONES A UTILIZAR------------------------------------//
 void medir_distancia1(void);
 //void medir_distancia2(void);
@@ -94,14 +102,18 @@ void medir_distancia1(void);
 void fase_1(void);
 void fase_2(void);
 void obj_detect(void);
+void func_obj(void);
 //Variables que se utlizaran en las fases del movimineto
 bool bandera;
+uint32_t bandera2;
+bool bandera3;
 //---------------------FUNCIONES DE LOS MOVIMINETOS----------------------------//
 void giro_der(void);
 void giro_izq(void);
 void adelante(void);
 void atras(void);
 void apagado_motores(void);
+void uartprintf(const char *str);
 //----------------------MAIN---------------------------------------------------//
 int main(void) {
     configureSysClock();  
@@ -112,26 +124,33 @@ int main(void) {
     config_timer2();
     config_timer3();
     config_pwm();
+    config_gpio();
     config_ultrasonico();
     config_motores();
     bandera = false;
     estado1 =0;
     estado2 =0;
+    bandera3 = true;
     while (1) {
         //PWMPulseWidthSet(BASE_PWM, SALIDA_PWM1, 255); // PF1 a 255
         //PWMPulseWidthSet(BASE_PWM, SALIDA_PWM2, 1); // PF2 a 128 (50%)
         //PWMPulseWidthSet(BASE_PWM, SALIDA_PWM3, 128);  // PF3 a 25
         //giro_der();
         //giro_izq();
-        
-        if (bandera == false){
+        if(bandera3 == true ){
+            if (bandera == false ){
             fase_1();
+            }
+            else if(bandera == true){
+                fase_2();
+            }
+            else{
+                adelante();
+            }
         }
-        else if(bandera == true){
-            fase_2();
-        }
-        else{
-            adelante();
+        else {
+
+            func_obj();
         }
 
     }
@@ -143,8 +162,8 @@ void Timer3IntHandler(void) {
     if (estado1 >1){
         estado1=0;
     }
-
 }
+
 // Manejador de interrupciones del Timer2
 void Timer2IntHandler(void) {
     TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
@@ -256,19 +275,59 @@ void UART0IntHandler(void) {
 }
 // uartprintf para el uart3 
 // Función para enviar una cadena por UART
-static void uartprintf(const char *str) {
+void uartprintf(const char *str) {
     while (*str) {
         UARTCharPut(UART3_BASE, *str++);  
     }
 }
 // funciones de las fases
+void func_obj(void){
+    if(bandera2 == 1){
+        giro_der();
+    }
+    else if(bandera2 == 2){
+        giro_izq();
+    }
+    else if(bandera2 == 3){
+        adelante();
+    }
+    else {
+        bandera3= true;
+    }
+}
 void obj_detect(void){
     if (strcmp(uartBuffer, "derobj") == 0) {
-        UARTprintf("holaa\n");
+        UARTprintf("giroder\n");
+        bandera2=1;
+        bandera3=false;
     }
     else  if (strcmp(uartBuffer, "izqobj") == 0) {
-        UARTprintf("adios\n");
+        UARTprintf("giroizq\n");
+        bandera2=2;
+        bandera3=false;
     }
+    else  if (strcmp(uartBuffer, "medobj") == 0) {
+        UARTprintf("obj en el medio\n");
+        bandera2=3;
+        bandera3=false;
+    }
+    else  if (strcmp(uartBuffer, "limpieza") == 0) {
+        UARTprintf("limpiando ...\n");
+        bandera2=4;
+        bandera3=false;
+    }
+    else  if (strcmp(uartBuffer, "off") == 0) {
+        UARTprintf("finalizacion\n");
+        bandera3=true;
+    }
+    else  if (strcmp(uartBuffer, "pelusa") == 0) {
+        GPIOPinWrite(PUERTOLEDSIN1, LED1I, LED1I);
+    }
+    else if (strcmp(uartBuffer, "nopelusa") == 0)
+    {
+       GPIOPinWrite(PUERTOLEDSIN1, LED1I, 0x00);
+    }
+    
 }
 void fase_1(void){
     if (estado1 == 0){
@@ -559,6 +618,30 @@ static void config_pwm(void) {
     PWMPulseWidthSet(BASE_PWM, SALIDA_PWM1, 1);   // PF1
     PWMPulseWidthSet(BASE_PWM, SALIDA_PWM2, 1);   // PF2
     PWMPulseWidthSet(BASE_PWM, SALIDA_PWM3, 1);  // PF3
+}
+// Configurar GPIO para un LED
+static void config_gpio(void){
+    //habilitacion de perifericos
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB); 
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
+    //LEDS INTERNOS
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN1, LED1I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN1, LED2I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN2, LED3I);
+    GPIOPinTypeGPIOOutput(PUERTOLEDSIN2, LED4I);
 }
 // Configuración del reloj del sistema a 120 MHz
 static void configureSysClock(void) {
