@@ -1,3 +1,4 @@
+
 #include <stdint.h>              // Tipos de datos enteros de tamaño fijo (uint32_t, int16_t, etc.)
 #include <stdbool.h>             // Tipo booleano (bool) con valores true y false
 #include "inc/hw_memmap.h"       // Mapa de memoria del hardware, define las direcciones base de los periféricos (GPIO, UART, etc.)
